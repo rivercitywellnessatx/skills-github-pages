@@ -1528,6 +1528,7 @@
         e.preventDefault();
 
         var submitBtn = form.querySelector('.form__submit');
+        var originalText = submitBtn.textContent;
         submitBtn.textContent = 'Reserving...';
         submitBtn.disabled = true;
 
@@ -1539,42 +1540,49 @@
           challenge: form.challenge.value,
           notes: form.notes.value.trim(),
           source: 'TPS Workshop - March 5, 2026',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          _subject: 'New Workshop Registration - ' + form.firstName.value.trim() + ' ' + form.lastName.value.trim(),
+          _template: 'table'
         };
 
-        /*
-         * ============================================
-         *  WEBHOOK CONFIGURATION
-         * ============================================
-         *  Replace the URL below with your GHL webhook
-         *  or any other form endpoint.
-         *
-         *  Example GHL webhook:
-         *  var WEBHOOK_URL = 'https://services.leadconnectorhq.com/hooks/YOUR_WEBHOOK_ID';
-         * ============================================
-         */
-        var WEBHOOK_URL = '';  // <-- ADD YOUR WEBHOOK URL HERE
+        // FormSubmit.co delivers registrations to the business email
+        var FORMSUBMIT_URL = 'https://formsubmit.co/ajax/info@rivercitywellnessatx.com';
 
-        if (WEBHOOK_URL) {
-          fetch(WEBHOOK_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formData),
-            mode: 'no-cors'
-          }).then(function() {
+        fetch(FORMSUBMIT_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(formData)
+        }).then(function(response) {
+          return response.json();
+        }).then(function(data) {
+          if (data.success) {
             showSuccess();
-          }).catch(function() {
-            showSuccess();
-          });
-        } else {
-          console.log('Form submission (no webhook configured):', formData);
-          showSuccess();
-        }
+          } else {
+            showError();
+          }
+        }).catch(function() {
+          showError();
+        });
 
         function showSuccess() {
           form.style.display = 'none';
           successEl.classList.add('active');
           successEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function showError() {
+          submitBtn.textContent = originalText;
+          submitBtn.disabled = false;
+          var existing = form.querySelector('.form__error');
+          if (existing) existing.remove();
+          var errorMsg = document.createElement('p');
+          errorMsg.className = 'form__error';
+          errorMsg.style.cssText = 'color:#e74c3c;text-align:center;margin-top:12px;font-weight:600;';
+          errorMsg.textContent = 'Something went wrong. Please try again or call (737) 348-0141 to register.';
+          submitBtn.parentNode.insertBefore(errorMsg, submitBtn.nextSibling);
         }
       });
     })();
